@@ -353,7 +353,10 @@
   </section>
 
   <section id="results-section">
-    <h2>Auswahl</h2>
+    <h2>
+      Auswahl
+      <button id="clear-cover-cache" class="list-toggle" type="button">Cover-Cache leeren</button>
+    </h2>
     <div class="results" id="results"></div>
     <p class="results-empty" id="results-empty">Noch keine Auswahl getroffen.</p>
   </section>
@@ -386,6 +389,29 @@
   const COOKIE_SELECTION = "randomusic_selection";
   const COOKIE_LIST_VISIBLE = "randomusic_list_visible";
 
+  // ---------- Cover-Art cache (localStorage, da Cookies dafür zu klein sind) ----------
+  const COVER_CACHE_KEY = "randomusic_cover_cache";
+
+  function loadCoverCache(){
+    try{
+      return JSON.parse(localStorage.getItem(COVER_CACHE_KEY)) || {};
+    }catch(e){
+      return {};
+    }
+  }
+
+  function saveCoverCache(cache){
+    try{
+      localStorage.setItem(COVER_CACHE_KEY, JSON.stringify(cache));
+    }catch(e){
+      console.warn('Cover-Cache konnte nicht gespeichert werden (localStorage voll/deaktiviert):', e.message);
+    }
+  }
+
+  function coverCacheKey(album){
+    return (album.artist + '||' + album.title).toLowerCase().trim();
+  }
+
   // ---------- State ----------
   let albums = getCookie(COOKIE_ALBUMS) || [];
   let selection = getCookie(COOKIE_SELECTION) || [];
@@ -413,6 +439,7 @@
   const randomizeBtn = document.getElementById('randomize-btn');
   const resultsEl = document.getElementById('results');
   const resultsEmpty = document.getElementById('results-empty');
+  const clearCoverCacheBtn = document.getElementById('clear-cover-cache');
 
   const vinylIcon = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.4"/>
@@ -509,6 +536,12 @@
     renderResults();
   });
 
+  clearCoverCacheBtn.addEventListener('click', function(){
+    localStorage.removeItem(COVER_CACHE_KEY);
+    console.log('[RandoMusic Cover] Cache geleert.');
+    renderResults();
+  });
+
   // ---------- Rendering: results + cover art ----------
   function renderResults(){
     resultsEl.innerHTML = '';
@@ -536,14 +569,48 @@
   }
 
   // Sequential queue with a delay to stay polite to the MusicBrainz rate limit.
+  // Nur Anfragen, die tatsächlich das Netz brauchen, laufen durch diese Queue —
+  // Cache-Treffer werden sofort angezeigt.
   let coverQueue = Promise.resolve();
 
   function loadCoverArt(album, coverEl){
-    coverQueue = coverQueue.then(() => fetchCoverArt(album, coverEl)).then(() => new Promise(r => setTimeout(r, 1100)));
+    const tag = `[RandoMusic Cover] ${album.artist} – ${album.title}`;
+    const cache = loadCoverCache();
+    const key = coverCacheKey(album);
+
+    if(Object.prototype.hasOwnProperty.call(cache, key)){
+      console.log(tag, 'aus Cache:', cache[key].coverUrl || '(kein Cover gefunden)');
+      applyCoverResult(cache[key].coverUrl, coverEl, album);
+      return;
+    }
+
+    coverQueue = coverQueue
+      .then(() => fetchCoverArt(album, coverEl, key, tag))
+      .then(() => new Promise(r => setTimeout(r, 1100)));
   }
 
-  async function fetchCoverArt(album, coverEl){
-    const tag = `[RandoMusic Cover] ${album.artist} – ${album.title}`;
+  function applyCoverResult(coverUrl, coverEl, album){
+    coverEl.classList.remove('loading');
+    if(!coverUrl){
+      return; // Vinyl-Icon-Platzhalter bleibt stehen
+    }
+    const img = new Image();
+    img.alt = `${album.artist} – ${album.title}`;
+    img.onload = () => {
+      coverEl.innerHTML = '';
+      coverEl.appendChild(img);
+    };
+    img.onerror = () => {
+      // Gecachte URL ist nicht mehr gültig -> Cache-Eintrag entfernen, Platzhalter bleibt.
+      const cache = loadCoverCache();
+      delete cache[coverCacheKey(album)];
+      saveCoverCache(cache);
+    };
+    img.src = coverUrl;
+  }
+
+  async function fetchCoverArt(album, coverEl, key, tag){
+    let coverUrl = null;
     try{
       const query = `artist:"${album.artist}" AND release:"${album.title}"`;
       const searchUrl = `https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(query)}&fmt=json&limit=1`;
@@ -558,25 +625,27 @@
       const mbid = searchData.releases && searchData.releases[0] && searchData.releases[0].id;
       if(!mbid) throw new Error('Keine passende Release-ID gefunden');
 
-      const coverUrl = `https://coverartarchive.org/release/${mbid}/front-250`;
-      console.log(tag, 'Lade Cover:', coverUrl);
-      const img = new Image();
-      img.alt = `${album.artist} – ${album.title}`;
+      const candidateUrl = `https://coverartarchive.org/release/${mbid}/front-250`;
+      console.log(tag, 'Lade Cover:', candidateUrl);
       await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = () => reject(new Error('Cover-Bild konnte nicht geladen werden (evtl. kein Artwork hinterlegt)'));
-        img.src = coverUrl;
+        const probe = new Image();
+        probe.onload = resolve;
+        probe.onerror = () => reject(new Error('Cover-Bild konnte nicht geladen werden (evtl. kein Artwork hinterlegt)'));
+        probe.src = candidateUrl;
       });
 
-      coverEl.classList.remove('loading');
-      coverEl.innerHTML = '';
-      coverEl.appendChild(img);
-      console.log(tag, 'Cover erfolgreich geladen.');
+      coverUrl = candidateUrl;
+      console.log(tag, 'Cover erfolgreich gefunden, wird gecacht.');
     }catch(err){
-      coverEl.classList.remove('loading');
       console.warn(tag, 'Kein Cover:', err.message);
-      // Placeholder bleibt stehen (Vinyl-Icon), kein Cover gefunden.
+      // coverUrl bleibt null -> wird als "kein Cover" gecacht, kein erneuter Netzabruf nötig.
     }
+
+    const cache = loadCoverCache();
+    cache[key] = { coverUrl, cachedAt: Date.now() };
+    saveCoverCache(cache);
+
+    applyCoverResult(coverUrl, coverEl, album);
   }
 
   // ---------- Init ----------
