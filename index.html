@@ -543,29 +543,38 @@
   }
 
   async function fetchCoverArt(album, coverEl){
+    const tag = `[RandoMusic Cover] ${album.artist} – ${album.title}`;
     try{
       const query = `artist:"${album.artist}" AND release:"${album.title}"`;
       const searchUrl = `https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(query)}&fmt=json&limit=1`;
+      console.log(tag, 'Suche MusicBrainz:', searchUrl);
+
       const searchRes = await fetch(searchUrl, { headers: { 'Accept': 'application/json' } });
-      if(!searchRes.ok) throw new Error('MusicBrainz-Suche fehlgeschlagen');
+      console.log(tag, 'MusicBrainz-Antwortstatus:', searchRes.status);
+      if(!searchRes.ok) throw new Error('MusicBrainz-Suche fehlgeschlagen, Status ' + searchRes.status);
+
       const searchData = await searchRes.json();
+      console.log(tag, 'MusicBrainz-Treffer:', searchData.releases ? searchData.releases.length : 0);
       const mbid = searchData.releases && searchData.releases[0] && searchData.releases[0].id;
-      if(!mbid) throw new Error('Keine Release-ID gefunden');
+      if(!mbid) throw new Error('Keine passende Release-ID gefunden');
 
       const coverUrl = `https://coverartarchive.org/release/${mbid}/front-250`;
+      console.log(tag, 'Lade Cover:', coverUrl);
       const img = new Image();
       img.alt = `${album.artist} – ${album.title}`;
       await new Promise((resolve, reject) => {
         img.onload = resolve;
-        img.onerror = reject;
+        img.onerror = () => reject(new Error('Cover-Bild konnte nicht geladen werden (evtl. kein Artwork hinterlegt)'));
         img.src = coverUrl;
       });
 
       coverEl.classList.remove('loading');
       coverEl.innerHTML = '';
       coverEl.appendChild(img);
+      console.log(tag, 'Cover erfolgreich geladen.');
     }catch(err){
       coverEl.classList.remove('loading');
+      console.warn(tag, 'Kein Cover:', err.message);
       // Placeholder bleibt stehen (Vinyl-Icon), kein Cover gefunden.
     }
   }
