@@ -163,7 +163,7 @@
 
   ol.tracklist li{
     display:flex;
-    align-items:baseline;
+    align-items:center;
     gap:12px;
     padding:11px 0;
     border-bottom:1px solid var(--line);
@@ -277,6 +277,15 @@
 
   .cover.loading svg{
     animation:spin 1.4s linear infinite;
+  }
+
+  .cover-sm{
+    width:36px;
+    height:36px;
+  }
+  .cover-sm svg{
+    width:18px;
+    height:18px;
   }
 
   @keyframes spin{
@@ -465,6 +474,7 @@
         const li = document.createElement('li');
         li.innerHTML = `
           <span class="idx">${String(i+1).padStart(2,'0')}</span>
+          <div class="cover cover-sm" data-cover>${vinylIcon}</div>
           <span class="meta">
             <div class="artist"></div>
             <div class="title"></div>
@@ -475,6 +485,7 @@
         li.querySelector('.title').textContent = album.title;
         li.querySelector('button').addEventListener('click', () => deleteAlbum(album.id));
         albumListEl.appendChild(li);
+        ensureCoverArt(album, li.querySelector('[data-cover]'));
       });
     }
 
@@ -539,6 +550,7 @@
   clearCoverCacheBtn.addEventListener('click', function(){
     localStorage.removeItem(COVER_CACHE_KEY);
     console.log('[RandoMusic Cover] Cache geleert.');
+    renderList();
     renderResults();
   });
 
@@ -564,26 +576,25 @@
       card.querySelector('.artist').textContent = album.artist;
       card.querySelector('.title').textContent = album.title;
       resultsEl.appendChild(card);
-      loadCoverArt(album, card.querySelector('[data-cover]'));
+      ensureCoverArt(album, card.querySelector('[data-cover]'));
     });
   }
 
   // Sequential queue with a delay to stay polite to the MusicBrainz rate limit.
-  // Nur Anfragen, die tatsächlich das Netz brauchen, laufen durch diese Queue —
-  // Cache-Treffer werden sofort angezeigt.
+  // Nur echte Netzabrufe laufen durch diese Queue — Cache-Treffer sind sofort da.
   let coverQueue = Promise.resolve();
 
-  function loadCoverArt(album, coverEl){
+  function ensureCoverArt(album, coverEl){
     const tag = `[RandoMusic Cover] ${album.artist} – ${album.title}`;
     const cache = loadCoverCache();
     const key = coverCacheKey(album);
 
     if(Object.prototype.hasOwnProperty.call(cache, key)){
-      console.log(tag, 'aus Cache:', cache[key].coverUrl || '(kein Cover gefunden)');
       applyCoverResult(cache[key].coverUrl, coverEl, album);
       return;
     }
 
+    coverEl.classList.add('loading');
     coverQueue = coverQueue
       .then(() => fetchCoverArt(album, coverEl, key, tag))
       .then(() => new Promise(r => setTimeout(r, 1100)));
