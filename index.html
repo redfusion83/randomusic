@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RandoMusic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1c1917;
+    --surface:#242019;
+    --surface-2:#2b261f;
+    --text:#f2efe9;
+    --muted:#a89f95;
+    --accent:#e8a33d;
+    --accent-ink:#2a1c05;
+    --accent2:#c4667b;
+    --line:#3a332b;
+    --radius:3px;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter', system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding:48px 24px 96px;
+  }
+
+  header{
+    margin-bottom:40px;
+  }
+
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-optical-sizing:auto;
+    font-size:clamp(2.4rem, 8vw, 3.4rem);
+    letter-spacing:-0.02em;
+    margin:0 0 6px;
+    color:var(--text);
+  }
+
+  .tagline{
+    color:var(--muted);
+    font-size:0.95rem;
+    max-width:36ch;
+  }
+
+  .groove{
+    height:1px;
+    background:linear-gradient(90deg, var(--accent) 0%, var(--line) 35%);
+    margin:32px 0;
+    border:none;
+  }
+
+  section{ margin-bottom:40px; }
+
+  h2{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:1.15rem;
+    margin:0 0 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+
+  .field-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  label.sr{
+    position:absolute;
+    width:1px; height:1px;
+    overflow:hidden;
+    clip:rect(0 0 0 0);
+  }
+
+  input[type="text"], input[type="number"]{
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:var(--radius);
+    padding:11px 12px;
+    font-family:'Inter', sans-serif;
+    font-size:0.95rem;
+    outline:none;
+    transition:border-color .15s ease;
+  }
+
+  input[type="text"]:focus, input[type="number"]:focus{
+    border-color:var(--accent);
+  }
+
+  input[type="text"]{
+    flex:1 1 180px;
+    min-width:0;
+  }
+
+  .btn{
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size:0.9rem;
+    border-radius:var(--radius);
+    border:1px solid var(--line);
+    background:var(--surface-2);
+    color:var(--text);
+    padding:11px 18px;
+    cursor:pointer;
+    transition:border-color .15s ease, transform .1s ease;
+  }
+  .btn:hover{ border-color:var(--muted); }
+  .btn:active{ transform:translateY(1px); }
+  .btn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  .btn-accent{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:var(--accent-ink);
+  }
+  .btn-accent:hover{ border-color:var(--accent); filter:brightness(1.06); }
+
+  .btn-ghost{
+    background:transparent;
+    color:var(--muted);
+    padding:6px 10px;
+    font-size:0.8rem;
+  }
+
+  .list-toggle{
+    background:transparent;
+    border:none;
+    color:var(--muted);
+    font-family:'Inter', sans-serif;
+    font-size:0.8rem;
+    cursor:pointer;
+    text-decoration:underline;
+    text-underline-offset:3px;
+    padding:0;
+  }
+
+  ol.tracklist{
+    list-style:none;
+    margin:0;
+    padding:0;
+    border-top:1px solid var(--line);
+  }
+
+  ol.tracklist li{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    padding:11px 0;
+    border-bottom:1px solid var(--line);
+  }
+
+  ol.tracklist li .idx{
+    color:var(--muted);
+    font-variant-numeric:tabular-nums;
+    font-size:0.8rem;
+    width:1.6em;
+    flex-shrink:0;
+  }
+
+  ol.tracklist li .meta{
+    flex:1;
+    min-width:0;
+  }
+
+  ol.tracklist li .artist{
+    font-weight:600;
+    font-size:0.95rem;
+  }
+
+  ol.tracklist li .title{
+    color:var(--muted);
+    font-size:0.88rem;
+  }
+
+  .empty-note{
+    color:var(--muted);
+    font-size:0.9rem;
+    padding:16px 0;
+    border-top:1px solid var(--line);
+  }
+
+  .count-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+
+  .count-row label{
+    font-size:0.9rem;
+    color:var(--muted);
+  }
+
+  input[type="number"]{
+    width:80px;
+  }
+
+  .randomize-btn{
+    display:block;
+    width:100%;
+    padding:20px;
+    margin-top:18px;
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:1.3rem;
+    letter-spacing:0.02em;
+    background:var(--accent);
+    border:1px solid var(--accent);
+    color:var(--accent-ink);
+    border-radius:var(--radius);
+    cursor:pointer;
+    transition:filter .15s ease, transform .1s ease;
+  }
+  .randomize-btn:hover{ filter:brightness(1.06); }
+  .randomize-btn:active{ transform:translateY(1px); }
+  .randomize-btn:disabled{ opacity:0.35; cursor:not-allowed; }
+
+  .results{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+
+  .result-card{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:14px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .result-card:first-child{ border-top:1px solid var(--line); }
+
+  .cover{
+    width:64px;
+    height:64px;
+    flex-shrink:0;
+    border-radius:var(--radius);
+    background:var(--surface-2);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+
+  .cover img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+
+  .cover svg{
+    width:28px;
+    height:28px;
+    opacity:0.5;
+  }
+
+  .cover.loading svg{
+    animation:spin 1.4s linear infinite;
+  }
+
+  @keyframes spin{
+    to{ transform:rotate(360deg); }
+  }
+
+  .result-meta .artist{
+    font-weight:600;
+    font-size:1rem;
+  }
+  .result-meta .title{
+    color:var(--muted);
+    font-size:0.9rem;
+    font-style:italic;
+  }
+
+  .results-empty{
+    color:var(--muted);
+    font-size:0.9rem;
+  }
+
+  footer{
+    margin-top:56px;
+    color:var(--muted);
+    font-size:0.78rem;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .cover.loading svg{ animation:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>RandoMusic</h1>
+    <p class="tagline">Deine Album-Sammlung. Zufällig zusammengestellt, wenn du keine Wahl treffen willst.</p>
+  </header>
+
+  <section id="add-section">
+    <h2>Album hinzufügen</h2>
+    <form id="add-form" class="field-row">
+      <label class="sr" for="artist-input">Interpret</label>
+      <input type="text" id="artist-input" placeholder="Interpret" autocomplete="off" required>
+      <label class="sr" for="title-input">Albumtitel</label>
+      <input type="text" id="title-input" placeholder="Albumtitel" autocomplete="off" required>
+      <button type="submit" class="btn btn-accent">Hinzufügen</button>
+    </form>
+  </section>
+
+  <hr class="groove">
+
+  <section id="list-section">
+    <h2>
+      Sammlung <span id="list-count" style="color:var(--muted); font-weight:400; font-size:0.85rem;"></span>
+      <button id="toggle-list" class="list-toggle" type="button">ausblenden</button>
+    </h2>
+    <div id="list-container">
+      <ol class="tracklist" id="album-list"></ol>
+      <p class="empty-note" id="empty-note" hidden>Noch keine Alben hinzugefügt.</p>
+    </div>
+  </section>
+
+  <hr class="groove">
+
+  <section id="randomize-section">
+    <h2>Zufallsauswahl</h2>
+    <div class="count-row">
+      <label for="count-input">Anzahl Alben</label>
+      <input type="number" id="count-input" min="1" value="3">
+    </div>
+    <button id="randomize-btn" class="randomize-btn" type="button">RANDOMIZE!</button>
+  </section>
+
+  <section id="results-section">
+    <h2>Auswahl</h2>
+    <div class="results" id="results"></div>
+    <p class="results-empty" id="results-empty">Noch keine Auswahl getroffen.</p>
+  </section>
+
+  <footer>Alben und letzte Auswahl werden lokal in Cookies auf diesem Gerät gespeichert.</footer>
+
+</div>
+
+<script>
+(function(){
+
+  // ---------- Cookie helpers ----------
+  function setCookie(name, value, days){
+    const d = new Date();
+    d.setTime(d.getTime() + days*24*60*60*1000);
+    document.cookie = name + "=" + encodeURIComponent(JSON.stringify(value)) + ";expires=" + d.toUTCString() + ";path=/;SameSite=Lax";
+  }
+
+  function getCookie(name){
+    const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    if(!match) return null;
+    try{
+      return JSON.parse(decodeURIComponent(match[1]));
+    }catch(e){
+      return null;
+    }
+  }
+
+  const COOKIE_ALBUMS = "randomusic_albums";
+  const COOKIE_SELECTION = "randomusic_selection";
+  const COOKIE_LIST_VISIBLE = "randomusic_list_visible";
+
+  // ---------- State ----------
+  let albums = getCookie(COOKIE_ALBUMS) || [];
+  let selection = getCookie(COOKIE_SELECTION) || [];
+  let listVisible = getCookie(COOKIE_LIST_VISIBLE);
+  if(listVisible === null) listVisible = true;
+
+  function uid(){
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function saveAlbums(){ setCookie(COOKIE_ALBUMS, albums, 365); }
+  function saveSelection(){ setCookie(COOKIE_SELECTION, selection, 365); }
+  function saveListVisible(){ setCookie(COOKIE_LIST_VISIBLE, listVisible, 365); }
+
+  // ---------- Elements ----------
+  const addForm = document.getElementById('add-form');
+  const artistInput = document.getElementById('artist-input');
+  const titleInput = document.getElementById('title-input');
+  const albumListEl = document.getElementById('album-list');
+  const emptyNote = document.getElementById('empty-note');
+  const listCount = document.getElementById('list-count');
+  const listContainer = document.getElementById('list-container');
+  const toggleListBtn = document.getElementById('toggle-list');
+  const countInput = document.getElementById('count-input');
+  const randomizeBtn = document.getElementById('randomize-btn');
+  const resultsEl = document.getElementById('results');
+  const resultsEmpty = document.getElementById('results-empty');
+
+  const vinylIcon = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.4"/>
+    <circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.4"/>
+    <circle cx="12" cy="12" r="0.9" fill="currentColor"/>
+  </svg>`;
+
+  // ---------- Rendering: album list ----------
+  function sortedAlbums(){
+    return [...albums].sort((a, b) => b.artist.localeCompare(a.artist, 'de', { sensitivity: 'base' }));
+  }
+
+  function renderList(){
+    const sorted = sortedAlbums();
+    albumListEl.innerHTML = '';
+    listCount.textContent = albums.length ? `(${albums.length})` : '';
+
+    if(sorted.length === 0){
+      emptyNote.hidden = false;
+    } else {
+      emptyNote.hidden = true;
+      sorted.forEach((album, i) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span class="idx">${String(i+1).padStart(2,'0')}</span>
+          <span class="meta">
+            <div class="artist"></div>
+            <div class="title"></div>
+          </span>
+          <button class="btn btn-ghost" type="button" aria-label="Löschen">entfernen</button>
+        `;
+        li.querySelector('.artist').textContent = album.artist;
+        li.querySelector('.title').textContent = album.title;
+        li.querySelector('button').addEventListener('click', () => deleteAlbum(album.id));
+        albumListEl.appendChild(li);
+      });
+    }
+
+    randomizeBtn.disabled = albums.length === 0;
+  }
+
+  function applyListVisibility(){
+    listContainer.hidden = !listVisible;
+    toggleListBtn.textContent = listVisible ? 'ausblenden' : 'anzeigen';
+  }
+
+  function deleteAlbum(id){
+    albums = albums.filter(a => a.id !== id);
+    selection = selection.filter(a => a.id !== id);
+    saveAlbums();
+    saveSelection();
+    renderList();
+    renderResults();
+  }
+
+  addForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    const artist = artistInput.value.trim();
+    const title = titleInput.value.trim();
+    if(!artist || !title) return;
+    albums.push({ id: uid(), artist, title });
+    saveAlbums();
+    artistInput.value = '';
+    titleInput.value = '';
+    artistInput.focus();
+    renderList();
+  });
+
+  toggleListBtn.addEventListener('click', function(){
+    listVisible = !listVisible;
+    saveListVisible();
+    applyListVisibility();
+  });
+
+  // ---------- Randomize ----------
+  function shuffle(arr){
+    const a = [...arr];
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  randomizeBtn.addEventListener('click', function(){
+    if(albums.length === 0) return;
+    let count = parseInt(countInput.value, 10);
+    if(!count || count < 1) count = 3;
+    if(count > albums.length) count = albums.length;
+    countInput.value = count;
+
+    selection = shuffle(albums).slice(0, count);
+    saveSelection();
+    renderResults();
+  });
+
+  // ---------- Rendering: results + cover art ----------
+  function renderResults(){
+    resultsEl.innerHTML = '';
+    if(selection.length === 0){
+      resultsEmpty.hidden = false;
+      return;
+    }
+    resultsEmpty.hidden = true;
+
+    selection.forEach(album => {
+      const card = document.createElement('div');
+      card.className = 'result-card';
+      card.innerHTML = `
+        <div class="cover loading" data-cover>${vinylIcon}</div>
+        <div class="result-meta">
+          <div class="artist"></div>
+          <div class="title"></div>
+        </div>
+      `;
+      card.querySelector('.artist').textContent = album.artist;
+      card.querySelector('.title').textContent = album.title;
+      resultsEl.appendChild(card);
+      loadCoverArt(album, card.querySelector('[data-cover]'));
+    });
+  }
+
+  // Sequential queue with a delay to stay polite to the MusicBrainz rate limit.
+  let coverQueue = Promise.resolve();
+
+  function loadCoverArt(album, coverEl){
+    coverQueue = coverQueue.then(() => fetchCoverArt(album, coverEl)).then(() => new Promise(r => setTimeout(r, 1100)));
+  }
+
+  async function fetchCoverArt(album, coverEl){
+    try{
+      const query = `artist:"${album.artist}" AND release:"${album.title}"`;
+      const searchUrl = `https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(query)}&fmt=json&limit=1`;
+      const searchRes = await fetch(searchUrl, { headers: { 'Accept': 'application/json' } });
+      if(!searchRes.ok) throw new Error('MusicBrainz-Suche fehlgeschlagen');
+      const searchData = await searchRes.json();
+      const mbid = searchData.releases && searchData.releases[0] && searchData.releases[0].id;
+      if(!mbid) throw new Error('Keine Release-ID gefunden');
+
+      const coverUrl = `https://coverartarchive.org/release/${mbid}/front-250`;
+      const img = new Image();
+      img.alt = `${album.artist} – ${album.title}`;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = coverUrl;
+      });
+
+      coverEl.classList.remove('loading');
+      coverEl.innerHTML = '';
+      coverEl.appendChild(img);
+    }catch(err){
+      coverEl.classList.remove('loading');
+      // Placeholder bleibt stehen (Vinyl-Icon), kein Cover gefunden.
+    }
+  }
+
+  // ---------- Init ----------
+  renderList();
+  applyListVisibility();
+  renderResults();
+
+})();
+</script>
+</body>
+</html>
